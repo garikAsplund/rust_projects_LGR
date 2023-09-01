@@ -1,6 +1,10 @@
 use anyhow::Result;
-
+use serde::{Deserialize, Serialize};
+use serde_json::*;
 use crate::models::{DBState, Epic, Story, Status};
+use std::io::Write;
+use std::fs::File;
+use std::io::BufReader;
 
 trait Database {
     fn read_db(&self) -> Result<DBState>;
@@ -13,11 +17,18 @@ struct JSONFileDatabase {
 
 impl Database for JSONFileDatabase {
     fn read_db(&self) -> Result<DBState> {
-        todo!() // read the content's of self.file_path and deserialize it using serde
+        // read the content's of self.file_path and deserialize it using serde
+        let file = File::open(&self.file_path)?;
+        let reader = std::io::BufReader::new(file);
+        let info: DBState = serde_json::from_reader(reader)?;
+        Ok(info)
     }
 
     fn write_db(&self, db_state: &DBState) -> Result<()> {
-        todo!() // serialize db_state to json and store it in self.file_path
+        // serialize db_state to json and store it in self.file_path
+        let file = File::create(&self.file_path)?;
+        serde_json::to_writer(file, db_state)?;
+        Ok(())
     }
 }
 
@@ -63,6 +74,7 @@ mod tests {
                 .expect("failed to convert tmpfile path to str").to_string() };
 
             let result = db.read_db();
+            println!("{:?}", result);
 
             assert_eq!(result.is_ok(), true);
         }
@@ -90,6 +102,8 @@ mod tests {
 
             let write_result = db.write_db(&state);
             let read_result = db.read_db().unwrap();
+
+            println!("{:?}", write_result);
 
             assert_eq!(write_result.is_ok(), true);
             // TODO: fix this error by deriving the appropriate traits for DBState
