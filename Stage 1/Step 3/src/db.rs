@@ -1,6 +1,6 @@
 use std::fs;
 
-use anyhow::Result;
+use anyhow::{ anyhow, Result };
 
 use crate::models::{DBState, Epic, Story, Status};
 
@@ -11,24 +11,52 @@ pub struct JiraDatabase {
 impl JiraDatabase {
     pub fn new(file_path: String) -> Self {
         Self {
-            database: Box::new(file_path),
+            database: Box::new(JSONFileDatabase { file_path }),
         }
     }
 
     pub fn read_db(&self) -> Result<DBState> {
-        todo!()
+        self.database.read_db()
     }
     
     pub fn create_epic(&self, epic: Epic) -> Result<u32> {
-        todo!()
+        let mut parsed = self.database.read_db()?;
+
+        let new_id = parsed.last_item_id + 1;
+
+        parsed.last_item_id = new_id;
+        parsed.epics.insert(new_id, epic);
+
+        self.database.write_db(&parsed)?;
+        Ok(new_id)
     }
     
     pub fn create_story(&self, story: Story, epic_id: u32) -> Result<u32> {
-        todo!()
-    }
+        let mut parsed = self.database.read_db()?;
+
+        let new_id = parsed.last_item_id + 1;
+
+        parsed.last_item_id = new_id;
+        parsed.stories.insert(new_id, story);
+
+        parsed.epics.get_mut(&epic_id).ok_or_else(|| anyhow!("could not find epic in database!"))?.stories.push(new_id);
+
+        self.database.write_db(&parsed)?;
+        Ok(new_id)
+     }
     
     pub fn delete_epic(&self, epic_id: u32) -> Result<()> {
-        todo!()
+        let mut parsed = self.database.read_db()?;
+
+        for story_id in &parsed.epics.get(&epic_id).ok_or_else(|| anyhow!("Could not find epic in database!"))?.stories {
+            parsed.stories.remove(story_id);
+        }
+
+        parsed.epics.remove(&epic_id);
+       
+        self.database.write_db(&parsed)?;
+
+        Ok(())
     }
     
     pub fn delete_story(&self,epic_id: u32, story_id: u32) -> Result<()> {
