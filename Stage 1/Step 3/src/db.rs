@@ -60,11 +60,28 @@ impl JiraDatabase {
     }
     
     pub fn delete_story(&self,epic_id: u32, story_id: u32) -> Result<()> {
-        todo!()
+        let mut parsed = self.database.read_db()?;
+
+        let epic = parsed.epics.get_mut(&epic_id).ok_or_else(|| anyhow!("Could not find epic in database!"))?;
+
+        let story_index = epic.stories.iter().position(|id| *id == story_id).ok_or_else(|| anyhow!("Could not find story in vector!"))?;
+        epic.stories.remove(story_index);
+        
+        parsed.stories.remove(&story_id);
+       
+        self.database.write_db(&parsed)?;
+
+        Ok(()) 
     }
     
     pub fn update_epic_status(&self, epic_id: u32, status: Status) -> Result<()> {
-        todo!()
+        let mut parsed = self.database.read_db()?;
+
+        parsed.epics.get_mut(&epic_id).ok_or_else(|| anyhow!("Could not find epic in database!"))?.status = status;
+       
+        self.database.write_db(&parsed)?;
+
+        Ok(())  
     }
     
     pub fn update_story_status(&self, story_id: u32, status: Status) -> Result<()> {
