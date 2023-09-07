@@ -1,7 +1,5 @@
 use std::fs;
-
 use anyhow::{ anyhow, Result };
-
 use crate::models::{DBState, Epic, Story, Status};
 
 pub struct JiraDatabase {
